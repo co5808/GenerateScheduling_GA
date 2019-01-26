@@ -44,3 +44,4 @@ class GA(object):
 
 if __name__ == "__main__":
     List, Count, Total = ReadData.LoadSchedule()
+    chromo = GA(List, Count)
