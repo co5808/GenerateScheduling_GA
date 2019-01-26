@@ -2,14 +2,16 @@ import codecs
 
 def LoadSchedule(filename = "Schedule.csv"):
     ScheduleList = {}
+    total = 0
     with codecs.open('.\\'+filename) as f:
         temp = f.readlines()
-
+        CaseCount = len(temp)
     for i in temp:
         list = i.split(",")
         ScheduleList[int(list[0])] = [int(list[1].strip()), int(list[2].strip())]
+        total += int(list[1])
 
-    return ScheduleList
+    return ScheduleList, CaseCount, total
 
 def BinaToDec(Binary):
     temp = 0
