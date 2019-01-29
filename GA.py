@@ -2,6 +2,7 @@ import random
 import ReadData
 
 GENE_POS = 4
+GENS = 100
 MUTATION = 0.001
 CROSSOVER = 0.7
 
@@ -40,8 +41,16 @@ class GA(object):
                         #print(self.Gene[case], "=>", temp)
                     self.Gene[case] = "".join(temp)
 
+    #돌연변이 관련 명령어
+    def mutation(self, MutationRating):
 
+    def crossover(self, OtherGene, CrossOverRate):
 
 if __name__ == "__main__":
+    #chromos = Gene List
+
+    chromos = []
     List, Count, Total = ReadData.LoadSchedule()
-    chromo = GA(List, Count)
+    for i in range(0, GENS):
+        chromos.append( GA(List, Count) )
+
