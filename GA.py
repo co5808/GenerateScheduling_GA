@@ -1,11 +1,15 @@
 import random
 import ReadData
+#import matplotlib.pyploy as plt
 
-#DNA 갯수
+#DNA 갯수s
 GENE_POS = 4
 GENS = 100
 MUTATION = 0.001
 CROSSOVER = 0.7
+#분기별 예상 전기 소모량
+EstimatePower = [80, 90, 65, 70]
+MAX_GENERATION = 100
 
 class GA(object):
     def __init__(self, Schedule, CASE):
@@ -44,7 +48,7 @@ class GA(object):
                     self.Gene[case] = "".join(temp)
             self.ProductPow()
 
-    def mutation(self, Schedule, CASE):
+    def mutation(self, CASE):
         #같은 염색체가 나타나는 것을 방지 하기 위한 반복문
         while(True):
             # random한 DNA 선택
@@ -57,7 +61,7 @@ class GA(object):
             mutation = random.randrange(0, len(temp))
             temp[mutation] = '1'
 
-            if Schedule[mutationDNA][1] != 1:
+            if self.Schedule[mutationDNA][1] != 1:
                 if mutation == len(temp) -1:
                     temp[0] = '1'
                 else:
@@ -68,20 +72,37 @@ class GA(object):
                 break
 
     def crossover(self, OtherGene):
-        point = random.randomrange(1, len(self.Gene))
+        point = random.randrange(1, len(self.Gene))
         temp = self.Gene[point:]
         self.Gene[point:] = OtherGene.Gene[point:]
         OtherGene.Gene[point:] = temp
+        mutationChois = random.randrange(1000)
+        if mutationChois == MUTATION * 1000:
+            self.mutation(7)        #7은 유전자의 구분 종류
+
         self.ProductPow()
 
     def ProductPow(self):
-        #4분기 각각의 총합량 계산
+        #분기별 총합량 계산
         self.GenerationCapa = []
+
         for i in range(0,4):
             temp = 0
             for j in range(1, len(self.Gene)):
                 temp += self.Schedule[j][0] * int(self.Gene[j][i])
             self.GenerationCapa.append(temp)
+
+def CalcFitness(Chromos):
+    fitness = []
+    total = 0
+    for i in range(0, GENS):
+        temp = 0
+        for j in range(0, GENE_POS):
+            temp += Chromos[i].GenerationCapa[j] - EstimatePower[j]
+        print(temp)
+        fitness.append(temp)
+        total += temp
+    return total, fitness
 
 if __name__ == "__main__" :
     #chromos = Gene List
@@ -92,3 +113,43 @@ if __name__ == "__main__" :
         chromos.append( GA(List, Count) )
 
     #반복문을 이용한 세대 증가.
+    Generation = 0
+    Plots = []
+    while(True):
+        newChromos = []
+        #적합도 계산 -> 룰렛 휠 계산
+
+        FitTotal, fitnesses = CalcFitness(chromos)
+
+        Plots.append(min(fitnesses))
+        print(Plots)
+        # 새로운 세대 생성
+        while(True):
+            #첫번째 부모 선택
+            SelectParent1 = random.randrange(100)           #0부터 100 사이의 랜덤한 수
+            ranges = 0
+            for i in range(1,len(chromos)+1):
+                ranges += 1 - ( fitnesses[ i - 1 ] / FitTotal )
+                if ranges > SelectParent1:
+                    Parent1 = chromos[i - 1]
+
+
+            SelectParent2 = random.randrange(100)
+            ranges = 0
+            for i in range(1, len(chromos)+1):
+                ranges += 1 - ( fitnesses[i-1] / FitTotal )
+                if ranges > SelectParent1:
+                    Parent2 = chromos[i - 1]
+
+            #교배(crossover)
+            newChromos.append(Parent1.crossover(Parent2))
+
+            #한 세대의 유전자의 갯수를 유지하기 위한 조건문
+            if len(newChromos) == GENS:
+                chromos = newChromos.copy()
+                break
+        print("Made Generation %d" % Generation)
+        if Generation == MAX_GENERATION:
+            break
+
+        Generation += 1
