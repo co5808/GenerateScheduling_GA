@@ -96,23 +96,33 @@ class GA(object):
 
 def CalcFitness(Chromos, T):
     fitness = []
-    total = 0
+
     for i in range(0, GENS):
+        total = 0
         temp = 0
         print(i, " )", end = "\t")
         #함수의 구성은 최종 생성 값이 0에 가까운 것.
         for j in range(0, GENE_POS):
             #150은 모든 장치가 가동 할 경우, 생성되는 최대 전력량
             # EstimatePower -> 각 분기당 필요 전력양
-            # Chromos.GenerationCapa -> 각 분기당 수리로 인해 생산 할수 없는 전기의 양.
+            # Chomos.GenerationCapa -> 각 분기당 수리로 인해 생산 할수 없는 전기의 양.
+
             """
+            활성함수 1안
+                - 각 분기별 생산 전기 / 분기별 필요 전기
+            """
+            #      (생산가능 최대 전력량) - (생산 불가능 전기량) / 필요전기량 - 1     -> 전기량 오버 = 0.x 의 수가 남음
+            #                                                                         -> 모자를 경우 음수.
+            temp += ( T -Chromos[i].GenerationCapa[j] ) / EstimatePower[j] - 1
+            """ 
             temp += ( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j]
             print(" (%d - %d )  - %d = %d "%(T, Chromos[i].GenerationCapa[j], EstimatePower[j], temp), end="->")
             """
-        print("result = %d" %temp)
+            print("temp value is ", temp)
+            total += temp
+        print("result = %d" %total)
         fitness.append(temp)
-        total += temp
-        print("TOTAL is ", total)
+
     return total, fitness
 
 if __name__ == "__main__" :
@@ -131,7 +141,7 @@ if __name__ == "__main__" :
     while(True):
         newChromos = []
         #적합도 계산 -> 룰렛 휠 계산
-
+        #0에 가까운 수일 수록 높은 적합도
         FitTotal, fitnesses = CalcFitness(chromos, TOTAL)
 
         Plots.append(min(fitnesses))
@@ -142,6 +152,7 @@ if __name__ == "__main__" :
             SelectParent1 = random.randrange(100)           #0부터 100 사이의 랜덤한 수
             ranges = 0
             for i in range(1,len(chromos)+1):
+                # 최적화 함수 역시 변경할 필요가 있음.
                 ranges += 1 - ( fitnesses[ i - 1 ] / FitTotal )
                 if ranges > SelectParent1:
                     Parent1 = chromos[i - 1]
