@@ -12,9 +12,10 @@ EstimatePower = [80, 90, 65, 70]
 MAX_GENERATION = 100
 
 class GA(object):
+    Schedule=[]
     def __init__(self, Schedule, CASE):
         self.Gene = []
-        self.Schedule = Schedule
+        GA.Schedule = Schedule
         for case in range(0, CASE):
             self.Gene.append( '0' * GENE_POS)
             # 유전자 제약조건
@@ -48,7 +49,7 @@ class GA(object):
                     self.Gene[case] = "".join(temp)
             self.ProductPow()
 
-    def mutation(self, CASE):
+    def mutation(self, CASE):   # <- 제대로 작성된게 맞는 건가?
         #같은 염색체가 나타나는 것을 방지 하기 위한 반복문
         while(True):
             # random한 DNA 선택
@@ -61,7 +62,7 @@ class GA(object):
             mutation = random.randrange(0, len(temp))
             temp[mutation] = '1'
 
-            if self.Schedule[mutationDNA][1] != 1:
+            if GA.Schedule[mutationDNA][1] != 1:
                 if mutation == len(temp) -1:
                     temp[0] = '1'
                 else:
@@ -81,6 +82,7 @@ class GA(object):
             self.mutation(7)        #7은 유전자의 구분 종류
 
         self.ProductPow()
+        return self
 
     def ProductPow(self):
         #분기별 총합량 계산
@@ -89,17 +91,20 @@ class GA(object):
         for i in range(0,4):
             temp = 0
             for j in range(1, len(self.Gene)):
-                temp += self.Schedule[j][0] * int(self.Gene[j][i])
+                temp += GA.Schedule[j][0] * int(self.Gene[j][i])
             self.GenerationCapa.append(temp)
 
-def CalcFitness(Chromos):
+def CalcFitness(Chromos, T):
     fitness = []
     total = 0
     for i in range(0, GENS):
         temp = 0
+        print(i, " )", end = "\t")
         for j in range(0, GENE_POS):
-            temp += Chromos[i].GenerationCapa[j] - EstimatePower[j]
-        print(temp)
+            #150은 모든 장치가 가동 할 경우, 생성되는 최대 전력량
+            temp += ( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j]
+            print(" (%d - %d )  - %d = %d "%(T, Chromos[i].GenerationCapa[j], EstimatePower[j], temp), end="->")
+        print("result = %d"%temp, temp)
         fitness.append(temp)
         total += temp
     return total, fitness
@@ -110,7 +115,9 @@ if __name__ == "__main__" :
     chromos = []
     List, Count, Total = ReadData.LoadSchedule()
     for i in range(0, GENS):
-        chromos.append( GA(List, Count) )
+        temp = GA(List, Count)
+        print(i, temp.Gene)
+        chromos.append( temp )
 
     #반복문을 이용한 세대 증가.
     Generation = 0
@@ -119,7 +126,7 @@ if __name__ == "__main__" :
         newChromos = []
         #적합도 계산 -> 룰렛 휠 계산
 
-        FitTotal, fitnesses = CalcFitness(chromos)
+        FitTotal, fitnesses = CalcFitness(chromos, Total)
 
         Plots.append(min(fitnesses))
         print(Plots)
@@ -153,3 +160,9 @@ if __name__ == "__main__" :
             break
 
         Generation += 1
+"""
+문제점 
+1. 최저기준(각 분기 별 필요한 전기 생산량을 만드는지) -> 유전자 생성 시, 판단하여 제거할 것인지.
+                                                 -> 다음 세대로 전이 될 때 제거할 것인지.
+2. mutation과 crossover가 제대로 작동을 하는 것인지 확인할 필요 있음.
+"""
