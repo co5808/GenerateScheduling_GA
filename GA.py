@@ -35,7 +35,7 @@ class GA(object):
             self.Gene[case] = "".join(temp)
 
             #print(Schedule[case + 1][1] != 1)
-            if Schedule[case + 1][1] != 1:
+            if Schedule[case+1][1] != 1:
                 for index in range(1, Schedule[case + 1][1]):
                     #print(Schedule[case + 1][1] - 1)
                     temp = list(self.Gene[case])
@@ -87,20 +87,21 @@ class GA(object):
     def ProductPow(self):
         #분기별 총합량 계산
         self.GenerationCapa = []
-
         for i in range(0,4):
             temp = 0
-            for j in range(1, len(self.Gene)):
-                temp += GA.Schedule[j][0] * int(self.Gene[j][i])
+            for j in range(1, len(self.Gene)+1):
+                temp += GA.Schedule[j][0] * int(self.Gene[j-1][i])
+                #print(GA.Schedule[j][0], int(self.Gene[j-1][i]))
             self.GenerationCapa.append(temp)
+        #print(self.Gene,"\n", GA.Schedule,"\n", self.GenerationCapa)
 
 def CalcFitness(Chromos, T):
     fitness = []
-
+    total = 0
     for i in range(0, GENS):
-        total = 0
+
         temp = 0
-        print(i, " )", end = "\t")
+        #print(i, " )", end = "\t")
         #함수의 구성은 최종 생성 값이 0에 가까운 것.
         for j in range(0, GENE_POS):
             #150은 모든 장치가 가동 할 경우, 생성되는 최대 전력량
@@ -118,11 +119,13 @@ def CalcFitness(Chromos, T):
             temp += ( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j]
             print(" (%d - %d )  - %d = %d "%(T, Chromos[i].GenerationCapa[j], EstimatePower[j], temp), end="->")
             """
-            print("temp value is ", temp)
+            #print("temp value is ", temp)
+            #total은 룰렛 선택을 적용하기 위한 전체 범주.
             total += temp
-        print("result = %d" %total)
-        fitness.append(temp)
-
+        #print("result = %d" %total)
+        fitness.append( (temp, i) )
+    fitness.sort()
+    print(total)
     return total, fitness
 
 if __name__ == "__main__" :
@@ -130,9 +133,10 @@ if __name__ == "__main__" :
 
     chromos = []
     List, Count, TOTAL = ReadData.LoadSchedule()
+    #랜덤한 유전자 생성
     for i in range(0, GENS):
         temp = GA(List, Count)
-        print(i, temp.Gene)
+        #print(i, temp.Gene)
         chromos.append( temp )
 
     #반복문을 이용한 세대 증가.
@@ -140,25 +144,27 @@ if __name__ == "__main__" :
     Plots = []
     while(True):
         newChromos = []
-        #적합도 계산 -> 룰렛 휠 계산
-        #0에 가까운 수일 수록 높은 적합도
+        #FitTotal = 룰렛 선택 방법을 이용하기 위한 전체 돌림판의 크기
+        #fitnesses =  (적합도, 인덱스) 튜플형태의 데이터가 들어있는 객체 리스트.
         FitTotal, fitnesses = CalcFitness(chromos, TOTAL)
 
         Plots.append(min(fitnesses))
+        print(Generation, "'s Generation")
         print(Plots)
         # 새로운 세대 생성
         while(True):
             #첫번째 부모 선택
-            SelectParent1 = random.randrange(100)           #0부터 100 사이의 랜덤한 수
+            SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
             ranges = 0
             for i in range(1,len(chromos)+1):
                 # 최적화 함수 역시 변경할 필요가 있음.
-                ranges += 1 - ( fitnesses[ i - 1 ] / FitTotal )
+                #ranges += 1 - ( fitnesses[ i - 1 ] / FitTotal )
+                ranges += fitnesses
                 if ranges > SelectParent1:
                     Parent1 = chromos[i - 1]
 
 
-            SelectParent2 = random.randrange(100)
+            SelectParent2 = random.randrange(int(FitTotal))
             ranges = 0
             for i in range(1, len(chromos)+1):
                 ranges += 1 - ( fitnesses[i-1] / FitTotal )
@@ -179,7 +185,15 @@ if __name__ == "__main__" :
         Generation += 1
 """
 문제점 
+* [해결]정비 스케줄을 저장한 Dict의 index가 1부터 시작하는 문제-> 프로그램의 흐름과 일치 하지 않음.
+* 기준에 만족하지 못하는 유전자를 제거 할 것인지, 말 것인지 선택.
 1. 최저기준(각 분기 별 필요한 전기 생산량을 만드는지) -> 유전자 생성 시, 판단하여 제거할 것인지.
                                                  -> 다음 세대로 전이 될 때 제거할 것인지.
 2. mutation과 crossover가 제대로 작동을 하는 것인지 확인할 필요 있음.
+
+
+추가점
+- matplotlib를 이용한 그래프 출력
+
+- 변경이 가능한 쉬운 참조.
 """
