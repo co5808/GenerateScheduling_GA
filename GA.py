@@ -10,6 +10,9 @@ CROSSOVER = 0.7
 #분기별 예상 전기 소모량
 EstimatePower = [80, 90, 65, 70]
 MAX_GENERATION = 100
+#적합도 함수에 만족하지 못하는 하위 유전자 삭제 비율
+#퍼센트(%) 단위로 기입하며, 0 이외의 수만 기입
+ToRemove = 20
 
 class GA(object):
     Schedule=[]
@@ -72,8 +75,9 @@ class GA(object):
                 self.ProductPow()
                 break
 
+    #1점 교차(CrossOver) 방식
     def crossover(self, OtherGene):
-        point = random.randrange(1, len(self.Gene))
+        point = random.randrange(0, len(self.Gene))
         temp = self.Gene[point:]
         self.Gene[point:] = OtherGene.Gene[point:]
         OtherGene.Gene[point:] = temp
@@ -153,23 +157,27 @@ if __name__ == "__main__" :
         print(Plots)
         # 새로운 세대 생성
         while(True):
+            #적합도가 낮은 하위 유전자 제거
             #첫번째 부모 선택
             SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
             ranges = 0
-            for i in range(1,len(chromos)+1):
+            for i in range(0,len(chromos)):
                 # 최적화 함수 역시 변경할 필요가 있음.
                 #ranges += 1 - ( fitnesses[ i - 1 ] / FitTotal )
-                ranges += fitnesses
+                #fitnesses = > ( 적합도, chromos No)
+                ranges += fitnesses[i][0]
                 if ranges > SelectParent1:
-                    Parent1 = chromos[i - 1]
-
+                    Parent1 = chromos[fitnesses[i][1]]
+                else:
+                    if i == len(chromos):
+                        print("What is wrong with you")
 
             SelectParent2 = random.randrange(int(FitTotal))
             ranges = 0
-            for i in range(1, len(chromos)+1):
-                ranges += 1 - ( fitnesses[i-1] / FitTotal )
-                if ranges > SelectParent1:
-                    Parent2 = chromos[i - 1]
+            for i in range(0, len(chromos)):
+                ranges += fitnesses[i][0]
+                if ranges > SelectParent2:
+                    Parent2 = chromos[fitnesses[i][1]]
 
             #교배(crossover)
             newChromos.append(Parent1.crossover(Parent2))
@@ -186,7 +194,7 @@ if __name__ == "__main__" :
 """
 문제점 
 * [해결]정비 스케줄을 저장한 Dict의 index가 1부터 시작하는 문제-> 프로그램의 흐름과 일치 하지 않음.
-* 기준에 만족하지 못하는 유전자를 제거 할 것인지, 말 것인지 선택.
+* [해결]기준에 만족하지 못하는 유전자를 제거 할 것인지, 말 것인지 선택.
 1. 최저기준(각 분기 별 필요한 전기 생산량을 만드는지) -> 유전자 생성 시, 판단하여 제거할 것인지.
                                                  -> 다음 세대로 전이 될 때 제거할 것인지.
 2. mutation과 crossover가 제대로 작동을 하는 것인지 확인할 필요 있음.
