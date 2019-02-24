@@ -125,7 +125,7 @@ def CalcFitness(Chromos, T):
             """
             #print("temp value is ", temp)
             #total은 룰렛 선택을 적용하기 위한 전체 범주.
-            total += temp
+        total += temp
         #print("result = %d" %total)
         fitness.append( (temp, i) )
     fitness.sort()
