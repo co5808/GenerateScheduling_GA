@@ -23,6 +23,7 @@ MAX_GENERATION = 100
 
 #목표 적합도
 Target_Fitness = 1.0
+
 class GA(object):
     Schedule=[]
     def __init__(self, Schedule, CASE):
@@ -154,8 +155,10 @@ if __name__ == "__main__" :
         chromos.append( temp )
 
     #반복문을 이용한 세대 증가.
-    Generation = 0
     Plots = []
+    if QuitCond == "Count":
+        Gen_COUNT = 0
+
     #세대 증가
     while(True):
         newChromos = []
@@ -164,8 +167,19 @@ if __name__ == "__main__" :
         FitTotal, fitnesses = CalcFitness(chromos, TOTAL)
 
         Plots.append(min(fitnesses))
-        print(Generation, "'s Generation")
-        print(Plots)
+        #그래프 출력을 위한 것
+        #print(Plots)
+        # ------ 종료 기준 충족 확인 -----
+        # 종료 기준이 "Count"일 경우
+        if QuitCond == "Count":
+            if Gen_COUNT == MAX_GENERATION:
+                break
+            else:
+                Gen_COUNT += 1
+                print("%d's Generation" %Gen_COUNT)
+        elif QuitCond == "Fitness":
+            if fitnesses[0] < Target_Fitness:
+                break
 
     # 새로운 세대 생성
         #살아남은 유전자 이동
@@ -174,8 +188,6 @@ if __name__ == "__main__" :
         while(True):
             #적합도가 낮은 하위 유전자 제거
             #첫번째 부모 선택
-            #살아남을 부모 선택.
-
             SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
             ranges = 0
             for i in range(0,len(chromos)):
@@ -207,11 +219,8 @@ if __name__ == "__main__" :
             if len(newChromos) == GENS:
                 chromos = newChromos.copy()
                 break
-        print("Made Generation %d" % Generation)
-        if Generation == MAX_GENERATION:
-            break
 
-        Generation += 1
+
 """
 문제점 
 * [해결]정비 스케줄을 저장한 Dict의 index가 1부터 시작하는 문제-> 프로그램의 흐름과 일치 하지 않음.
