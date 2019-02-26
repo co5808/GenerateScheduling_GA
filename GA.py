@@ -9,11 +9,20 @@ MUTATION = 0.001
 CROSSOVER = 0.7
 #분기별 예상 전기 소모량
 EstimatePower = [80, 90, 65, 70]
-MAX_GENERATION = 100
+
 #적합도 함수에 만족하지 못하는 하위 유전자 삭제 비율
 #퍼센트(%) 단위로 기입하며, 0 이외의 수만 기입
 ToRemove = 20
+#종료 기준 Count -> 반복횟수, Fitness -> 목표 적합도 미만
+Quit = ("Count", "Fitness")
+#종료 기준 선택
+QuitCond = Quit[0]
 
+#반복 횟수 인수
+MAX_GENERATION = 100
+
+#목표 적합도
+Target_Fitness = 1.0
 class GA(object):
     Schedule=[]
     def __init__(self, Schedule, CASE):
@@ -56,7 +65,7 @@ class GA(object):
         #같은 염색체가 나타나는 것을 방지 하기 위한 반복문
         while(True):
             # random한 DNA 선택
-            mutationDNA = random.randrange(1, CASE + 1)
+            mutationDNA = random.randrange(0, CASE)
             #DNA 기본형태 선언
             #self.Gene[mutationDNA] = "0" * GENE_POS
 
@@ -64,12 +73,13 @@ class GA(object):
 
             mutation = random.randrange(0, len(temp))
             temp[mutation] = '1'
-
-            if GA.Schedule[mutationDNA][1] != 1:
+            #Scehdule은 1부터 7까지 존재.
+            if GA.Schedule[mutationDNA+1][1] != 1:
                 if mutation == len(temp) -1:
                     temp[0] = '1'
                 else:
                     temp[mutation+1] = '1'
+            #반면 Gene은 0부터 시작.
             if self.Gene[mutationDNA] != "".join(temp):
                 self.Gene[mutationDNA] = "".join(temp)
                 self.ProductPow()
@@ -125,7 +135,7 @@ def CalcFitness(Chromos, T):
             """
             #print("temp value is ", temp)
             #total은 룰렛 선택을 적용하기 위한 전체 범주.
-            total += temp
+        total += temp
         #print("result = %d" %total)
         fitness.append( (temp, i) )
     fitness.sort()
@@ -146,6 +156,7 @@ if __name__ == "__main__" :
     #반복문을 이용한 세대 증가.
     Generation = 0
     Plots = []
+    #세대 증가
     while(True):
         newChromos = []
         #FitTotal = 룰렛 선택 방법을 이용하기 위한 전체 돌림판의 크기
@@ -155,10 +166,16 @@ if __name__ == "__main__" :
         Plots.append(min(fitnesses))
         print(Generation, "'s Generation")
         print(Plots)
-        # 새로운 세대 생성
+
+    # 새로운 세대 생성
+        #살아남은 유전자 이동
+        if ToRemove != 0:
+            newChromos.extend(chromos[:int(len(chromos) / 100 * ToRemove)])
         while(True):
             #적합도가 낮은 하위 유전자 제거
             #첫번째 부모 선택
+            #살아남을 부모 선택.
+
             SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
             ranges = 0
             for i in range(0,len(chromos)):
@@ -168,6 +185,7 @@ if __name__ == "__main__" :
                 ranges += fitnesses[i][0]
                 if ranges > SelectParent1:
                     Parent1 = chromos[fitnesses[i][1]]
+                    break
                 else:
                     if i == len(chromos):
                         print("What is wrong with you")
@@ -178,7 +196,10 @@ if __name__ == "__main__" :
                 ranges += fitnesses[i][0]
                 if ranges > SelectParent2:
                     Parent2 = chromos[fitnesses[i][1]]
-
+                    break
+                else:
+                    if i == len(chromos):
+                        print("What is wrong with you")
             #교배(crossover)
             newChromos.append(Parent1.crossover(Parent2))
 
