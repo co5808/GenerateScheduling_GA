@@ -1,6 +1,6 @@
 import random
 import ReadData
-#import matplotlib.pyploy as plt
+import matplotlib.pyplot as plt
 
 #DNA 갯수s
 GENE_POS = 4
@@ -12,7 +12,7 @@ EstimatePower = [80, 90, 65, 70]
 
 #적합도 함수에 만족하지 못하는 하위 유전자 삭제 비율
 #퍼센트(%) 단위로 기입하며, 0 이외의 수만 기입
-ToRemove = 20
+ToRemove = 80
 #종료 기준 Count -> 반복횟수, Fitness -> 목표 적합도 미만
 Quit = ("Count", "Fitness")
 #종료 기준 선택
@@ -140,7 +140,7 @@ def CalcFitness(Chromos, T):
         #print("result = %d" %total)
         fitness.append( (temp, i) )
     fitness.sort()
-    print(total)
+    #print(total)
     return total, fitness
 
 if __name__ == "__main__" :
@@ -166,7 +166,7 @@ if __name__ == "__main__" :
         #fitnesses =  (적합도, 인덱스) 튜플형태의 데이터가 들어있는 객체 리스트.
         FitTotal, fitnesses = CalcFitness(chromos, TOTAL)
 
-        Plots.append(min(fitnesses))
+        Plots.append(min(fitnesses)[0])
         #그래프 출력을 위한 것
         #print(Plots)
         # ------ 종료 기준 충족 확인 -----
@@ -185,6 +185,7 @@ if __name__ == "__main__" :
         #살아남은 유전자 이동
         if ToRemove != 0:
             newChromos.extend(chromos[:int(len(chromos) / 100 * ToRemove)])
+            #print("leave Chromos", len(newChromos))
         while(True):
             #적합도가 낮은 하위 유전자 제거
             #첫번째 부모 선택
@@ -219,6 +220,8 @@ if __name__ == "__main__" :
             if len(newChromos) == GENS:
                 chromos = newChromos.copy()
                 break
+    plt.plot(Plots)
+    plt.show()
 
 
 """
