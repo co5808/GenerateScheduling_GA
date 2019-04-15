@@ -62,7 +62,7 @@ class GA(object):
                     self.Gene[case] = "".join(temp)
             self.ProductPow()
 
-    def mutation(self, CASE):   # <- 제대로 작성된게 맞는 건가?
+    def mutation(self, CASE):   
         #같은 염색체가 나타나는 것을 방지 하기 위한 반복문
         while(True):
             # random한 DNA 선택
@@ -129,7 +129,9 @@ def CalcFitness(Chromos, T):
             """
             #      (생산가능 최대 전력량) - (생산 불가능 전기량) / 필요전기량 - 1     -> 전기량 오버 = 0.x 의 수가 남음
             #                                                                         -> 모자를 경우 음수.
-            temp += ( T -Chromos[i].GenerationCapa[j] ) / EstimatePower[j] - 1
+            #temp += (( T -Chromos[i].GenerationCapa[j] ) / EstimatePower[j] )- 1   <- 양수·음수가 섞일 경우, 증감으로 인해 올바른 기준이 되지 않음.
+            #수정
+            temp += (( T -Chromos[i].GenerationCapa[j] ) / EstimatePower[j] )
             """ 
             temp += ( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j]
             print(" (%d - %d )  - %d = %d "%(T, Chromos[i].GenerationCapa[j], EstimatePower[j], temp), end="->")
@@ -183,6 +185,7 @@ if __name__ == "__main__" :
 
     # 새로운 세대 생성
         #살아남은 유전자 이동
+        #음수인 적합도가 있을 경우 제거, 최저의 값을 이용.
         if ToRemove != 0:
             newChromos.extend(chromos[:int(len(chromos) / 100 * ToRemove)])
             #print("leave Chromos", len(newChromos))
