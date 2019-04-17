@@ -118,7 +118,7 @@ def CalcFitness(Chromos, T):
     fitness = []
     total = 0
     for i in range(0, GENS):
-        temp = 200
+        temp = 0
         #print(i, " )", end = "\t")
         #함수의 구성은 최종 생성 값이 0에 가까운 것.
         for j in range(0, GENE_POS):
@@ -126,15 +126,8 @@ def CalcFitness(Chromos, T):
             # EstimatePower -> 각 분기당 필요 전력양
             # Chomos.GenerationCapa -> 각 분기당 수리로 인해 생산 할수 없는 전기의 양.
 
-            #   ( 생산 전기량(풀 가동 시 생산 전기량 - 생산 불가능 전기량) - 필요 전기량 )
-
-            temp2 = (( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j] )
-            if temp2 < 0:
-                print(chromos[i].GenerationCapa, EstimatePower)
-            if temp > temp2:
-                temp = temp2
-            #print(i,j, temp)
-            #print("temp value is ", temp)
+            # Fitness Function => 필요전기량 / 생산 전기량(전기 생산 가능 총량 - 분기별 생산 불가는 전력량)
+            temp += (EstimatePower[j] / (T - chromos[i].GenerationCapa[j]))
             #total은 룰렛 선택을 적용하기 위한 전체 범주.
         total += temp
         #print("result = %d" %total)
@@ -156,13 +149,15 @@ if __name__ == "__main__" :
             if (TOTAL - temp.GenerationCapa[j]) < EstimatePower[j]:
                 temp=None
                 break
+
         if temp == None:
             continue
         else:
-        #print(i, temp.Gene)
+            #print(i, temp.Gene)
             chromos.append( temp )
-        if len(chromos) == GENS:
-            break
+            if len(chromos) == GENS:
+                break
+
 
     #반복문을 이용한 세대 증가.
     Plots = []
@@ -219,7 +214,7 @@ if __name__ == "__main__" :
             for j in range(0, len(EstimatePower)):
                 if (TOTAL - temp.GenerationCapa[j]) < EstimatePower[j] :
                     temp=None
-                    break
+                     break
             if temp == None:
                 continue
             else:
