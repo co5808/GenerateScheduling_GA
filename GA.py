@@ -9,17 +9,18 @@ MUTATION = 0.001
 CROSSOVER = 0.7
 #분기별 예상 전기 소모량
 EstimatePower = [80, 90, 65, 70]
+GenerationDel = 0
 
 #적합도 함수에 만족하지 못하는 하위 유전자 삭제 비율
 #퍼센트(%) 단위로 기입하며, 0 이외의 수만 기입
-ToRemove = 80
+ToRemove = 20
 #종료 기준 Count -> 반복횟수, Fitness -> 목표 적합도 미만
 Quit = ("Count", "Fitness")
 #종료 기준 선택
 QuitCond = Quit[0]
 
 #반복 횟수 인수
-MAX_GENERATION = 100
+MAX_GENERATION = 2
 
 #목표 적합도
 Target_Fitness = 1.0
@@ -62,8 +63,9 @@ class GA(object):
                     self.Gene[case] = "".join(temp)
             self.ProductPow()
 
-    def mutation(self, CASE):   
+    def mutation(self, CASE):
         #같은 염색체가 나타나는 것을 방지 하기 위한 반복문
+        #print("Start mutation :", self.Gene, end='->')
         while(True):
             # random한 DNA 선택
             mutationDNA = random.randrange(0, CASE)
@@ -85,14 +87,16 @@ class GA(object):
                 self.Gene[mutationDNA] = "".join(temp)
                 self.ProductPow()
                 break
-
+        print(self.Gene)
     #1점 교차(CrossOver) 방식
     def crossover(self, OtherGene):
+        #print(self.Gene, "&" ,OtherGene.Gene, end="->")
         point = random.randrange(0, len(self.Gene))
         temp = self.Gene[point:]
         self.Gene[point:] = OtherGene.Gene[point:]
         OtherGene.Gene[point:] = temp
         mutationChois = random.randrange(1000)
+        #print(self.Gene)
         if mutationChois == MUTATION * 1000:
             self.mutation(7)        #7은 유전자의 구분 종류
 
@@ -114,8 +118,7 @@ def CalcFitness(Chromos, T):
     fitness = []
     total = 0
     for i in range(0, GENS):
-
-        temp = 0
+        temp = 200
         #print(i, " )", end = "\t")
         #함수의 구성은 최종 생성 값이 0에 가까운 것.
         for j in range(0, GENE_POS):
@@ -123,19 +126,14 @@ def CalcFitness(Chromos, T):
             # EstimatePower -> 각 분기당 필요 전력양
             # Chomos.GenerationCapa -> 각 분기당 수리로 인해 생산 할수 없는 전기의 양.
 
-            """
-            활성함수 1안
-                - 각 분기별 생산 전기 / 분기별 필요 전기
-            """
-            #      (생산가능 최대 전력량) - (생산 불가능 전기량) / 필요전기량 - 1     -> 전기량 오버 = 0.x 의 수가 남음
-            #                                                                         -> 모자를 경우 음수.
-            #temp += (( T -Chromos[i].GenerationCapa[j] ) / EstimatePower[j] )- 1   <- 양수·음수가 섞일 경우, 증감으로 인해 올바른 기준이 되지 않음.
-            #수정
-            temp += (( T -Chromos[i].GenerationCapa[j] ) / EstimatePower[j] )
-            """ 
-            temp += ( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j]
-            print(" (%d - %d )  - %d = %d "%(T, Chromos[i].GenerationCapa[j], EstimatePower[j], temp), end="->")
-            """
+            #   ( 생산 전기량(풀 가동 시 생산 전기량 - 생산 불가능 전기량) - 필요 전기량 )
+
+            temp2 = (( T - Chromos[i].GenerationCapa[j] ) - EstimatePower[j] )
+            if temp2 < 0:
+                print(chromos[i].GenerationCapa, EstimatePower)
+            if temp > temp2:
+                temp = temp2
+            #print(i,j, temp)
             #print("temp value is ", temp)
             #total은 룰렛 선택을 적용하기 위한 전체 범주.
         total += temp
@@ -151,10 +149,20 @@ if __name__ == "__main__" :
     chromos = []
     List, Count, TOTAL = ReadData.LoadSchedule()
     #랜덤한 유전자 생성
-    for i in range(0, GENS):
+    while(True):
         temp = GA(List, Count)
+        for j in range(0, len(EstimatePower)):
+            #조건을 만족하지 못할 경우, 유전자 재생성
+            if (TOTAL - temp.GenerationCapa[j]) < EstimatePower[j]:
+                temp=None
+                break
+        if temp == None:
+            continue
+        else:
         #print(i, temp.Gene)
-        chromos.append( temp )
+            chromos.append( temp )
+        if len(chromos) == GENS:
+            break
 
     #반복문을 이용한 세대 증가.
     Plots = []
@@ -163,36 +171,24 @@ if __name__ == "__main__" :
 
     #세대 증가
     while(True):
+        #각 세대당 삭제된 유전자 출력을 위한 변수
+        GenerationDel = 0
         newChromos = []
         #FitTotal = 룰렛 선택 방법을 이용하기 위한 전체 돌림판의 크기
         #fitnesses =  (적합도, 인덱스) 튜플형태의 데이터가 들어있는 객체 리스트.
+
         FitTotal, fitnesses = CalcFitness(chromos, TOTAL)
-
         Plots.append(min(fitnesses)[0])
-        #그래프 출력을 위한 것
-        #print(Plots)
-        # ------ 종료 기준 충족 확인 -----
-        # 종료 기준이 "Count"일 경우
-        if QuitCond == "Count":
-            if Gen_COUNT == MAX_GENERATION:
-                break
-            else:
-                Gen_COUNT += 1
-                print("%d's Generation" %Gen_COUNT)
-        elif QuitCond == "Fitness":
-            if fitnesses[0] < Target_Fitness:
-                break
-
-    # 새로운 세대 생성
-        #살아남은 유전자 이동
-        #음수인 적합도가 있을 경우 제거, 최저의 값을 이용.
-        if ToRemove != 0:
-            newChromos.extend(chromos[:int(len(chromos) / 100 * ToRemove)])
+        if ToRemove != 0 and len(chromos) > (100 * ToRemove):
+            newChromos.extend(chromos[:int(len(chromos) * (100 / ToRemove))])
             #print("leave Chromos", len(newChromos))
         while(True):
-            #적합도가 낮은 하위 유전자 제거
             #첫번째 부모 선택
-            SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
+            try:
+                SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
+            except:
+                print("fitTotal %d" %FitTotal)
+
             ranges = 0
             for i in range(0,len(chromos)):
                 # 최적화 함수 역시 변경할 필요가 있음.
@@ -201,6 +197,7 @@ if __name__ == "__main__" :
                 ranges += fitnesses[i][0]
                 if ranges > SelectParent1:
                     Parent1 = chromos[fitnesses[i][1]]
+
                     break
                 else:
                     if i == len(chromos):
@@ -216,29 +213,39 @@ if __name__ == "__main__" :
                 else:
                     if i == len(chromos):
                         print("What is wrong with you")
+
             #교배(crossover)
-            newChromos.append(Parent1.crossover(Parent2))
+            temp = Parent1.crossover(Parent2)
+            for j in range(0, len(EstimatePower)):
+                if (TOTAL - temp.GenerationCapa[j]) < EstimatePower[j] :
+                    temp=None
+                    break
+            if temp == None:
+                continue
+            else:
+                newChromos.append(temp)
 
             #한 세대의 유전자의 갯수를 유지하기 위한 조건문
             if len(newChromos) == GENS:
+                #for i in range(0,len(newChromos)):
+                    #print(chromos[i].Gene, "->", newChromos[i].Gene)
                 chromos = newChromos.copy()
+                break
+
+
+        # ------ 종료 기준 충족 확인 -----
+        # 종료 기준이 "Count"일 경우
+        if QuitCond == "Count":
+            if Gen_COUNT == MAX_GENERATION:
+                print(chromos[min(fitnesses)[1]])
+                break
+            else:
+                Gen_COUNT += 1
+                print("%d's Generation(fitTotal:%d)" %(Gen_COUNT,FitTotal))
+        elif QuitCond == "Fitness":
+            if fitnesses[0] < Target_Fitness:
                 break
     plt.plot(Plots)
     plt.show()
 
 
-"""
-문제점 
-* [해결]정비 스케줄을 저장한 Dict의 index가 1부터 시작하는 문제-> 프로그램의 흐름과 일치 하지 않음.
-* [해결]기준에 만족하지 못하는 유전자를 제거 할 것인지, 말 것인지 선택.
-1. 최저기준(각 분기 별 필요한 전기 생산량을 만드는지) -> 유전자 생성 시, 판단하여 제거할 것인지.
-                                                 -> 다음 세대로 전이 될 때 제거할 것인지.
-2. mutation과 crossover가 제대로 작동을 하는 것인지 확인할 필요 있음.
-3. plot을 이용한 그래프 출력 확인(적합도 함수의 정당성 확인)
-
-
-추가점
-- matplotlib를 이용한 그래프 출력
-
-- 변경이 가능한 쉬운 참조.
-"""
