@@ -20,7 +20,7 @@ Quit = ("Count", "Fitness")
 QuitCond = Quit[0]
 
 #반복 횟수 인수
-MAX_GENERATION = 2
+MAX_GENERATION = 100
 
 #목표 적합도
 Target_Fitness = 1.0
@@ -127,12 +127,20 @@ def CalcFitness(Chromos, T):
             # Chomos.GenerationCapa -> 각 분기당 수리로 인해 생산 할수 없는 전기의 양.
 
             # Fitness Function => 필요전기량 / 생산 전기량(전기 생산 가능 총량 - 분기별 생산 불가는 전력량)
-            temp += (EstimatePower[j] / (T - chromos[i].GenerationCapa[j]))
+            GenerationOutput = T - chromos[i].GenerationCapa[j]
+            #if GenerationOutput != 0:
+            if GenerationOutput != 0:
+                temp += (EstimatePower[j] / GenerationOutput)
+            else:
+                print(i,chromos[i].GenerationCapa[j])
+            #else:
+
             #total은 룰렛 선택을 적용하기 위한 전체 범주.
         total += temp
         #print("result = %d" %total)
+        #tuple로 구성
         fitness.append( (temp, i) )
-    fitness.sort()
+    fitness.sort(reverse=True)
     #print(total)
     return total, fitness
 
@@ -149,7 +157,6 @@ if __name__ == "__main__" :
             if (TOTAL - temp.GenerationCapa[j]) < EstimatePower[j]:
                 temp=None
                 break
-
         if temp == None:
             continue
         else:
@@ -173,35 +180,34 @@ if __name__ == "__main__" :
         #fitnesses =  (적합도, 인덱스) 튜플형태의 데이터가 들어있는 객체 리스트.
 
         FitTotal, fitnesses = CalcFitness(chromos, TOTAL)
-        Plots.append(min(fitnesses)[0])
+        Plots.append(max(fitnesses)[0])
+        #일정 비율의 부모를 제거 하기 위한 것이였으나 제거
+        """
         if ToRemove != 0 and len(chromos) > (100 * ToRemove):
             newChromos.extend(chromos[:int(len(chromos) * (100 / ToRemove))])
             #print("leave Chromos", len(newChromos))
+        """
         while(True):
             #첫번째 부모 선택
-            try:
-                SelectParent1 = random.randrange(int(FitTotal))           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
-            except:
-                print("fitTotal %d" %FitTotal)
-
+            # 0~100 사이의 수를 임의 선택
+            SelectParent1 = random.randrange(100)           #0부터 round(FitTotal, 0) 사이의 랜덤한 수 (round(FitTotal, 0)은 0의 자리에서 버림한 수 )
             ranges = 0
             for i in range(0,len(chromos)):
                 # 최적화 함수 역시 변경할 필요가 있음.
                 #ranges += 1 - ( fitnesses[ i - 1 ] / FitTotal )
                 #fitnesses = > ( 적합도, chromos No)
-                ranges += fitnesses[i][0]
+                ranges += (fitnesses[i][0] / FitTotal) * 100
                 if ranges > SelectParent1:
                     Parent1 = chromos[fitnesses[i][1]]
-
                     break
                 else:
                     if i == len(chromos):
                         print("What is wrong with you")
-
-            SelectParent2 = random.randrange(int(FitTotal))
+            #0~100 사이의 수를 임의 선택
+            SelectParent2 = random.randrange(100)
             ranges = 0
             for i in range(0, len(chromos)):
-                ranges += fitnesses[i][0]
+                ranges += (fitnesses[i][0] / FitTotal) * 100
                 if ranges > SelectParent2:
                     Parent2 = chromos[fitnesses[i][1]]
                     break
@@ -213,19 +219,18 @@ if __name__ == "__main__" :
             temp = Parent1.crossover(Parent2)
             for j in range(0, len(EstimatePower)):
                 if (TOTAL - temp.GenerationCapa[j]) < EstimatePower[j] :
-                    temp=None
-                     break
+                    temp = None
+                    break
             if temp == None:
                 continue
             else:
                 newChromos.append(temp)
-
-            #한 세대의 유전자의 갯수를 유지하기 위한 조건문
-            if len(newChromos) == GENS:
-                #for i in range(0,len(newChromos)):
-                    #print(chromos[i].Gene, "->", newChromos[i].Gene)
-                chromos = newChromos.copy()
-                break
+                #한 세대의 유전자의 갯수를 유지하기 위한 조건문
+                if len(newChromos) == GENS:
+                    #for i in range(0,len(newChromos)):
+                        #print(chromos[i].Gene, "->", newChromos[i].Gene)
+                    chromos = newChromos.copy()
+                    break
 
 
         # ------ 종료 기준 충족 확인 -----
@@ -240,6 +245,7 @@ if __name__ == "__main__" :
         elif QuitCond == "Fitness":
             if fitnesses[0] < Target_Fitness:
                 break
+
     plt.plot(Plots)
     plt.show()
 
